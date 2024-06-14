@@ -18,14 +18,13 @@ def stream_to_textbox(text_chunk):
     summary_area.insert(tk.END, text_chunk)
     summary_area.config(state=tk.DISABLED)
     summary_area.see(tk.END)  # Scroll to the end
-
 def summarize_text(text):
     client = OpenAI(api_key=openai.api_key)
 
     stream = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a coding Expert. You know every languages and spent lots of years with educating coding to newbies. Everytime a code sent to you, look for bugs and correct them. You are always friendly to people and teach them like anybody can understand. Also you always give some tips to improve their code."},
+            {"role": "system", "content": "You are a coding Expert. You know every languages and spent lots of years with educating coding to newbies. Everytime a code sent to you, look for bugs and correct them. You are always friendly to people and teach them like anybody can understand. Also you always give some tips to improve their code. You write in html format. Use in-code style features for your response to make them look better and read easier. I want you to use your HTML format to make texts look like chatgpt output. Try to imitate how they give response on their own website. Like codes on a different overlay, Lists on a special format etc. I want you to use your html style attributes to imitate that. Don't forget to use indentation on your response"},
             {"role": "user", "content": text}  
         ],
         stream=True
