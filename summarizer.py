@@ -74,7 +74,7 @@ def get_comment():
 # --- Main UI Setup ---
 window = tk.Tk()
 window.attributes('-topmost',True)
-window.title("Coding Coach")
+window.title("Companion")
 
 # Get screen width and height (cross-platform)
 screen_width = window.winfo_screenwidth()
@@ -110,7 +110,7 @@ comment_button = ttk.Button(window, text="Comment", command=get_comment)
 comment_button.grid(row=3, column=0, pady=5, sticky="ew")
 
 # --- Summarize Button ---
-summarize_button = ttk.Button(window, text="Summarize", command=lambda: summarize_thread(input_area.get("1.0", tk.END).strip()))
+summarize_button = ttk.Button(window, text="Send", command=lambda: summarize_thread(input_area.get("1.0", tk.END).strip()))
 summarize_button.grid(row=4, column=0, pady=5, sticky="ew")
 
 # --- Summary Area ---
