@@ -152,7 +152,7 @@ model_frame = ttk.LabelFrame(window, text="Model")
 model_frame.grid(row=0, column=0, sticky="w", padx=10, pady=5)
 
 # Radio buttons arranged horizontally using grid
-models = ["gpt-3.5-turbo", "gpt-4-turbo", "gpt-4o"]
+models = ["gpt-3.5-turbo", "gpt-4", "gpt-4o"]
 for i, model in enumerate(models):
     ttk.Radiobutton(
         model_frame, 
