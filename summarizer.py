@@ -47,7 +47,7 @@ def check_clipboard():
 
         if use_input_area.get():
             input_area.delete("1.0", tk.END)
-            input_area.insert(tk.END, current_clipboard)
+            input_area.insert(tk.END, current_clipboard, "color")  # Insert with "color" tag
 
     window.after(1000, check_clipboard)
 
