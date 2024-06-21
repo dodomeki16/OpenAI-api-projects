@@ -13,29 +13,48 @@ _ = load_dotenv(find_dotenv())
 
 openai.api_key=os.getenv("OPENAI_API_KEY")
 
+# Conversation History
+conversation_history = [
+    {"role": "system", "content": "You are the best companion in the world. You try to help anyone that comes to you for it. After  doing what they want, always try to give some extra advices that might come in handy. But avoid it in unnecessary situations."},
+]
 def stream_to_textbox(text_chunk):
-    summary_area.config(state=tk.NORMAL)
-    summary_area.insert(tk.END, text_chunk)
-    summary_area.config(state=tk.DISABLED)
-    summary_area.see(tk.END)  # Scroll to the end
-def summarize_text(text):
-    client = OpenAI(api_key=openai.api_key)
+    companion_area.config(state=tk.NORMAL)
+    companion_area.insert(tk.END, text_chunk)
+    companion_area.config(state=tk.DISABLED)
+    companion_area.see(tk.END)  # Scroll to the end
+def send_text(text):
+    global conversation_history  # Access the global conversation history
+    
+    # Clear the companion area before the new response
+    companion_area.config(state=tk.NORMAL)
+    companion_area.delete("1.0", tk.END)
+    companion_area.config(state=tk.DISABLED)
 
+    # Add user's message to the conversation history
+    conversation_history.append({"role": "user", "content": text})
+
+    client = OpenAI(api_key=openai.api_key)
+    
     stream = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a coding Expert. You know every languages and spent lots of years with educating coding to newbies. Everytime a code sent to you, look for bugs and correct them. You are always friendly to people and teach them like anybody can understand. Also you always give some tips to improve their code. You write in html format. Use in-code style features for your response to make them look better and read easier. I want you to use your HTML format to make texts look like chatgpt output. Try to imitate how they give response on their own website. Like codes on a different overlay, Lists on a special format etc. I want you to use your html style attributes to imitate that. Don't forget to use indentation on your response"},
-            {"role": "user", "content": text}  
-        ],
-        stream=True
+        model=current_model,
+        messages=conversation_history,  # Use the full history
+        stream=True,
     )
+    
     for chunk in stream:
         text_chunk = chunk.choices[0].delta.content
         if text_chunk:
-            window.after(0, stream_to_textbox, text_chunk)  # Update the textbox immediately
+            window.after(0, stream_to_textbox, text_chunk)
+    input_area.delete("1.0", tk.END)
+    model = current_model.get()
 
-def summarize_thread(text_to_summarize):
-    threading.Thread(target=summarize_text, args=(text_to_summarize,)).start()
+    # Add assistant's response to the history (after streaming is complete)
+    conversation_history.append(
+        {"role": "assistant", "content": companion_area.get("1.0", tk.END).strip()}
+    )
+
+def send_thread(text_to_send):
+    threading.Thread(target=send_text, args=(text_to_send,)).start()
 
 def check_clipboard():
     global last_clipboard
@@ -51,7 +70,13 @@ def check_clipboard():
 
     window.after(1000, check_clipboard)
 
+# Function to set the model
+def set_model(model_name):
+    global current_model
+    current_model = model_name
+    print("Model changed to:", current_model)
 
+set_model("gpt-3.5-turbo")
 def get_comment():
     original_text = input_area.get("1.0", tk.END).strip()  # Get text from input area
     
@@ -59,7 +84,7 @@ def get_comment():
         comment = comment_entry.get("1.0", tk.END).strip()
         comment_dialog.destroy()
         text_with_comment = f"Original text:\n{original_text}\n\nComment:\n{comment}"
-        summarize_thread(text_with_comment)  # Directly summarize with the comment
+        send_thread(text_with_comment)  # Directly send with the comment
 
     comment_dialog = tk.Toplevel(window)
     comment_dialog.title("Enter Comment")
@@ -89,15 +114,15 @@ y_pos = 0
 # Set window geometry (width, height, position)
 window.geometry(f"{window_width}x{window_height}+{x_pos}+{y_pos}")
 
-# --- Input Area ---
+# --- Input Area --- (Adjust row here and for the elements below)
 input_frame = ttk.Frame(window)
-input_frame.grid(row=0, column=0, padx=10, pady=5, sticky="nsew")  # Use grid layout
+input_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
 
 use_input_area = tk.BooleanVar(value=True)
 #ttk.Checkbutton(input_frame, text="Use input area", variable=use_input_area).pack(side=tk.LEFT)
 
-auto_summarize = tk.BooleanVar(value=False)
-#ttk.Checkbutton(input_frame, text="Auto-send", variable=auto_summarize).pack(side=tk.LEFT)
+auto_send = tk.BooleanVar(value=False)
+#ttk.Checkbutton(input_frame, text="Auto-send", variable=auto_send).pack(side=tk.LEFT)
 
 input_label = ttk.Label(window, text="Enter your text:")
 input_label.grid(row=1, column=0, padx=10, pady=(5, 0), sticky="w")
@@ -109,19 +134,34 @@ input_area.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="nsew")
 comment_button = ttk.Button(window, text="Comment", command=get_comment)
 comment_button.grid(row=3, column=0, pady=5, sticky="ew")
 
-# --- Summarize Button ---
-summarize_button = ttk.Button(window, text="Send", command=lambda: summarize_thread(input_area.get("1.0", tk.END).strip()))
-summarize_button.grid(row=4, column=0, pady=5, sticky="ew")
+# --- send Button ---
+send_button = ttk.Button(window, text="Send", command=lambda: send_thread(input_area.get("1.0", tk.END).strip()))
+send_button.grid(row=4, column=0, pady=5, sticky="ew")
 
-# --- Summary Area ---
-summary_area = scrolledtext.ScrolledText(window, wrap=tk.WORD, state=tk.DISABLED)
-summary_area.grid(row=5, column=0, padx=10, pady=(0, 5), sticky="nsew")
+# --- companion Area ---
+companion_area = scrolledtext.ScrolledText(window, wrap=tk.WORD, state=tk.DISABLED)
+companion_area.grid(row=5, column=0, padx=10, pady=(0, 5), sticky="nsew")
 
 # Configure grid weights for resizing
 window.grid_rowconfigure(2, weight=1)  # Input area gets more weight
-window.grid_rowconfigure(5, weight=1)  # Summary area gets more weight
+window.grid_rowconfigure(5, weight=1)  # companion area gets more weight
 window.grid_columnconfigure(0, weight=1)  # Expand horizontally
 
+# --- Model Selection Buttons --- (Modified)
+model_frame = ttk.LabelFrame(window, text="Model")
+model_frame.grid(row=0, column=0, sticky="w", padx=10, pady=5)
+
+# Radio buttons arranged horizontally using grid
+models = ["gpt-3.5-turbo", "gpt-4-turbo", "gpt-4o"]
+for i, model in enumerate(models):
+    ttk.Radiobutton(
+        model_frame, 
+        text=model.replace("-", " ").upper(),
+        variable=current_model, 
+        value=model,
+        command=lambda m=model: set_model(m)
+    ).grid(row=0, column=i, padx=5, sticky="w")  # Place in a row
+  
 last_clipboard = ""  # Store the last clipboard content to avoid duplicate checks
 check_clipboard()
 
